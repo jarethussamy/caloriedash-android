@@ -1,0 +1,42 @@
+name: Build CalorieDash Android (unsigned)
+
+# Builds the unsigned release APK + AAB on a normal runner.
+# Signing happens OFF GitHub with the owner's upload keystore —
+# the keystore is never uploaded here.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the project
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK components
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.1.0"
+
+      - name: Build unsigned release APK and AAB
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease bundleRelease --console=plain
+
+      - name: Upload unsigned outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: caloriedash-android-unsigned
+          path: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
